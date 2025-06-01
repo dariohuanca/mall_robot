@@ -6,8 +6,8 @@ import struct
 
 #Constants
 # Wheel radius and separation (adjust according to the robot)
-WHEEL_RADIUS = 0.05  # in meters
-WHEEL_SEPARATION = 0.3  # in meters
+WHEEL_RADIUS = 0.02  # in meters
+WHEEL_SEPARATION = 0.564  # in meters
 
 class CmdVelToCAN(Node):
     def __init__(self):
@@ -45,7 +45,7 @@ class CmdVelToCAN(Node):
         
         # Convert to int32_t format (scale by 100 to match 0.01 dps/LSB)
         v_right_int = int(v_right_dps * 100)
-        v_left_int = int(v_left_dps * 100)
+        v_left_int = -int(v_left_dps * 100)
 
         # Pack as signed int32 (4 bytes) in little-endian format
         data_right = [0xA2] + [0x00, 0x00, 0x00] + list(struct.pack('<i', v_right_int))
@@ -55,7 +55,7 @@ class CmdVelToCAN(Node):
         self.send_can_message(self.motor_id_right, data_right)
         self.send_can_message(self.motor_id_left, data_left)
         
-        self.get_logger().info(f'Sent: v_left={v_left_dps:.2f} dps, v_right={v_right_dps:.2f} dps')
+        self.get_logger().info(f'Sent: v_left={-v_left_dps:.2f} dps, v_right={v_right_dps:.2f} dps')
 
     def send_can_message(self, arbitration_id, data):
         message = can.Message(arbitration_id=arbitration_id, data=data, is_extended_id=False)

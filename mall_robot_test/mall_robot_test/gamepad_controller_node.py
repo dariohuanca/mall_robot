@@ -19,7 +19,7 @@ class GamepadController(Node):
         self.publisher = self.create_publisher(Twist, '/cmd_vel', 10)
         
         # Scaling factors (adjust based on robot capabilities)
-        self.linear_scale = 1.0  # Maximum linear speed in m/s
+        self.linear_scale = 0.4  # Maximum linear speed in m/s
         self.angular_scale = 1.0  # Maximum angular speed in rad/s
         
         self.get_logger().info('GamepadController node started')
