@@ -6,7 +6,7 @@ import struct
 
 #Constants
 # Wheel radius and separation (adjust according to the robot)
-WHEEL_RADIUS = 0.02  # in meters
+WHEEL_RADIUS = 0.1  # in meters
 WHEEL_SEPARATION = 0.564  # in meters
 
 class CmdVelToCAN(Node):
