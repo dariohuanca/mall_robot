@@ -26,6 +26,8 @@ setup(
             'gamepad_controller_node = mall_robot_test.gamepad_controller_node:main',
             'cmd_vel_to_can_node = mall_robot_test.cmd_vel_to_can_node:main',
             'imu_node = mall_robot_test.imu_node:main',
+            'ultrasonic_sensors_node = mall_robot_test.ultrasonic_sensors_node:main',
+            'battery_control_node = mall_robot_test.battery_control_node:main',
         ],
     },
 )
