@@ -28,6 +28,7 @@ setup(
             'imu_node = mall_robot_test.imu_node:main',
             'ultrasonic_sensors_node = mall_robot_test.ultrasonic_sensors_node:main',
             'battery_control_node = mall_robot_test.battery_control_node:main',
+            'can_motor_status_node = mall_robot_test.can_motor_status_node:main',
         ],
     },
 )

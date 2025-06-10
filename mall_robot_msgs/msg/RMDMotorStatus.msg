@@ -1,0 +1,9 @@
+std_msgs/Header header
+float32 motor_temperature
+float32 mos_temperature
+float32 bus_voltage
+float32 bus_current
+float32 phase_current_a
+float32 phase_current_b
+float32 phase_current_c
+uint8 error_code
