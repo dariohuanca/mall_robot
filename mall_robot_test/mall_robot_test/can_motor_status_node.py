@@ -33,7 +33,7 @@ class CANMotorStatusNode(Node):
         self.bus = can.interface.Bus(bustype='slcan', channel=self.can_interface, bitrate=self.bitrate)
 
         # Timer
-        self.timer = self.create_timer(0.01, self.read_all_motor_status)
+        self.timer = self.create_timer(0.1, self.read_all_motor_status)
 
     def request_status(self, tx_id, rx_id, cmd_byte):
         msg = can.Message(arbitration_id=tx_id, data=[cmd_byte] + [0x00]*7, is_extended_id=False)
@@ -49,6 +49,7 @@ class CANMotorStatusNode(Node):
             rx_id = 0x100 + motor_id
 
             msg_out = RMDMotorStatus()
+            print(msg_out)
             msg_out.header = Header()
             msg_out.header.stamp = self.get_clock().now().to_msg()
 
@@ -56,8 +57,8 @@ class CANMotorStatusNode(Node):
                 # === Status 1 ===
                 data1 = self.request_status(tx_id, rx_id, 0x9A)
                 if data1:
-                    msg_out.temperature = int.from_bytes([data1[1]], 'big', signed=True)
-                    msg_out.brake_control_command = int.from_bytes([data1[3]], 'big', signed=False)
+                    msg_out.temperature = int.from_bytes(data1[1:2], 'big', signed=True)
+                    msg_out.brake_control_command = int.from_bytes(data1[3:4], 'big', signed=False)
                     msg_out.bus_voltage = int.from_bytes(data1[4:6], 'big', signed=False) / 10.0
                     msg_out.error_flag = int.from_bytes(data1[6:8], 'big', signed=False)
 
@@ -65,9 +66,9 @@ class CANMotorStatusNode(Node):
                 data2 = self.request_status(tx_id, rx_id, 0x9C)
                 if data2:
                     msg_out.iq_current = int.from_bytes(data2[2:4], 'big', signed=True) / 100.0
-                    msg_out.speed_shaft = int.from_bytes(data2[4:6], 'big', signed=True)
-                    msg_out.degree_shaft = int.from_bytes(data2[6:8], 'big', signed=True)
-                    self.latest_vel_ang[motor_id] = (msg_out.speed_shaft / 60.0) * 2 * math.pi  # rad/s
+                    msg_out.speed_shaft = int.from_bytes(data2[4:6], 'big', signed=True) / 1.0
+                    msg_out.degree_shaft = int.from_bytes(data2[6:8], 'big', signed=True) / 1.0
+                    self.latest_vel_ang[motor_id] = (msg_out.speed_shaft) * math.pi / 180  # rad/s
 
                 # === Status 3 ===
                 data3 = self.request_status(tx_id, rx_id, 0x9D)
