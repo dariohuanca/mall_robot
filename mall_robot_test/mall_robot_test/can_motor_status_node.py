@@ -1,67 +1,106 @@
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Header
+from geometry_msgs.msg import TwistStamped
 from mall_robot_msgs.msg import RMDMotorStatus
+
 import can
-import struct
+import math
+
+# Constants
+# Wheel radius and separation (adjust according to the robot)
+WHEEL_RADIUS = 0.1  # in meters
+WHEEL_SEPARATION = 0.564  # in meters
 
 class CANMotorStatusNode(Node):
     def __init__(self):
         super().__init__('can_motor_status_node')
-        self.publisher_ = self.create_publisher(RMDMotorStatus, 'rmd_motor_status', 10)
-        self.timer = self.create_timer(0.1, self.read_motor_status)
 
-        # Initialize CAN bus (assuming slcand and can0 are active)
-        self.bus = can.interface.Bus(bustype='socketcan', channel='can0', bitrate=1000000)
+        # Motor IDs
+        self.motor_ids = [0x141, 0x142]  # 0x01 = left, 0x02 = right
+        self.motors_position = {0x141:'left', 0x142:'right'}
 
-        # Motor ID and CAN IDs
-        self.motor_id = 0x01
-        self.tx_id = 0x140 + self.motor_id
-        self.rx_id = 0x240 + self.motor_id
+        # Publishers for each motor
+        self.publishers = {
+            mid: self.create_publisher(RMDMotorStatus, f'/rmd_motor_status_{self.motors_position[mid]}', 10)
+            for mid in self.motor_ids
+        }
 
-    def send_cmd_and_recv(self, cmd_byte):
-        msg = can.Message(arbitration_id=self.tx_id, data=[cmd_byte] + [0x00]*7, is_extended_id=False)
-        try:
-            self.bus.send(msg)
-            response = self.bus.recv(timeout=0.1)
-            if response and response.arbitration_id == self.rx_id and response.data[0] == cmd_byte:
-                return response.data
-        except can.CanError as e:
-            self.get_logger().warn(f"CAN Error: {e}")
+        # Publisher for robot velocity
+        self.vel_pub = self.create_publisher(TwistStamped, '/encoder_vel', 10)
+
+        # Track latest speed_rpm per motor
+        self.latest_vel_ang = {mid: 0.0 for mid in self.motor_ids}
+
+        # CAN bus setup
+        self.bus = can.interface.Bus(channel='can0', bustype='socketcan')
+
+        # Timer to read at 10 Hz
+        self.timer = self.create_timer(0.01, self.read_all_motor_status)
+
+    def request_status(self, tx_id, rx_id, cmd_byte):
+        msg = can.Message(arbitration_id=tx_id, data=[cmd_byte] + [0x00]*7, is_extended_id=False)
+        self.bus.send(msg)
+        res = self.bus.recv(timeout=0.1)
+        if res and res.arbitration_id == rx_id:
+            return res.data
         return None
 
-    def read_motor_status(self):
-        status_msg = RMDMotorStatus()
-        status_msg.header = Header()
-        status_msg.header.stamp = self.get_clock().now().to_msg()
+    def read_all_motor_status(self):
+        for motor_id in self.motor_ids:
+            tx_id = motor_id
+            rx_id = 0x100 + motor_id
 
-        # 0x9A: Motor status 1 and error flags
-        data_9a = self.send_cmd_and_recv(0x9A)
-        if data_9a:
-            status_msg.motor_temperature = float(data_9a[1])
-            status_msg.bus_voltage = struct.unpack('<H', bytes(data_9a[2:4]))[0] * 0.1
-            status_msg.bus_current = struct.unpack('<h', bytes(data_9a[4:6]))[0] * 0.1
-            status_msg.error_code = data_9a[7]
-        else:
-            self.get_logger().warn("No response for 0x9A")
+            msg_out = RMDMotorStatus()
+            msg_out.header = Header()
+            msg_out.header.stamp = self.get_clock().now().to_msg()
 
-        # 0x9C: Phase current
-        data_9c = self.send_cmd_and_recv(0x9C)
-        if data_9c:
-            status_msg.phase_current_a = struct.unpack('<h', bytes(data_9c[1:3]))[0] * 0.01
-            status_msg.phase_current_b = struct.unpack('<h', bytes(data_9c[3:5]))[0] * 0.01
-            status_msg.phase_current_c = struct.unpack('<h', bytes(data_9c[5:7]))[0] * 0.01
-        else:
-            self.get_logger().warn("No response for 0x9C")
+            try:
+                # === Status 1 ===
+                data1 = self.request_status(tx_id, rx_id, 0x9A)
+                if data1:
+                    msg_out.temperature = int.from_bytes(data1[1], 'big', signed=True)
+                    msg_out.brake_control_command = int.from_bytes(data1[3], 'big', signed=False)
+                    msg_out.bus_voltage = int.from_bytes(data1[4:6], 'big', signed=False)/10.0
+                    msg_out.error_flag = int.from_bytes(data1[6:8], 'big', signed=False)
 
-        # 0x9D: MOSFET temperature
-        data_9d = self.send_cmd_and_recv(0x9D)
-        if data_9d:
-            status_msg.mos_temperature = struct.unpack('<H', bytes(data_9d[1:3]))[0]
-        else:
-            self.get_logger().warn("No response for 0x9D")
+                # === Status 2 ===
+                data2 = self.request_status(tx_id, rx_id, 0x9C)
+                if data2:
+                    msg_out.iq_current = int.from_bytes(data2[2:4], 'big', signed=True)/100.0
+                    msg_out.speed_shaft = int.from_bytes(data2[4:6], 'big', signed=True)
+                    msg_out.degree_shaft = int.from_bytes(data2[6:8], 'big', signed=True)
 
-        self.publisher_.publish(status_msg)
+                # === Status 3 ===
+                data3 = self.request_status(tx_id, rx_id, 0x9D)
+                if data3:
+                    msg_out.phase_current_a = int.from_bytes(data2[2:4], 'big', signed=True)/100.0
+                    msg_out.phase_current_b = int.from_bytes(data2[4:6], 'big', signed=True)/100.0
+                    msg_out.phase_current_c = int.from_bytes(data2[6:8], 'big', signed=True)/100.0
+
+                self.publishers[motor_id].publish(msg_out)
+
+            except Exception as e:
+                self.get_logger().error(f"Error reading motor {motor_id}: {e}")
+
+        # === Compute and publish robot velocity ===
+        if all(mid in self.latest_vel_ang for mid in self.motor_ids):
+            vel_ang_l = self.latest_vel_ang[0x141]
+            vel_ang_r = self.latest_vel_ang[0x142]
+
+            vx = (vel_ang_r + vel_ang_l) / 2.0
+            vy = 0.0
+            vtheta = (vel_ang_r - vel_ang_l) / WHEEL_SEPARATION
+
+            twist_msg = TwistStamped()
+            twist_msg.header.stamp = self.get_clock().now().to_msg()
+            twist_msg.header.frame_id = "base_link"
+            twist_msg.twist.linear.x = vx
+            twist_msg.twist.linear.y = vy
+            twist_msg.twist.angular.z = vtheta
+
+            self.vel_pub.publish(twist_msg)
+
 
 def main(args=None):
     rclpy.init(args=args)

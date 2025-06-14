@@ -4,7 +4,7 @@ from geometry_msgs.msg import Twist
 import can
 import struct
 
-#Constants
+# Constants
 # Wheel radius and separation (adjust according to the robot)
 WHEEL_RADIUS = 0.1  # in meters
 WHEEL_SEPARATION = 0.564  # in meters
