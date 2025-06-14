@@ -17,7 +17,7 @@ class CANMotorStatusNode(Node):
 
         # Motor IDs
         self.motor_ids = [0x141, 0x142]
-        self.motors_position = {0x141: 'right', 0x142: 'left'}
+        self.motors_position = {0x141: 'left', 0x142: 'right'}
 
         # Publishers
         self.motor_publishers = {
@@ -33,18 +33,14 @@ class CANMotorStatusNode(Node):
         self.bus = can.interface.Bus(bustype='slcan', channel=self.can_interface, bitrate=self.bitrate)
 
         # Timer
-        self.timer = self.create_timer(0.1, self.read_all_motor_status)
+        self.timer = self.create_timer(0.01, self.read_all_motor_status)
 
     def request_status(self, tx_id, rx_id, cmd_byte):
         msg = can.Message(arbitration_id=tx_id, data=[cmd_byte] + [0x00]*7, is_extended_id=False)
         self.bus.send(msg)
-
-        for _ in range(10):  # try up to 10 times, total wait = 10 * 0.01 = 0.1s
-            res = self.bus.recv(timeout=0.01)
-            if res and res.arbitration_id == rx_id and res.data[0] == cmd_byte:
-                return res.data
-
-        self.get_logger().warn(f"No response for cmd {hex(cmd_byte)} from ID {hex(rx_id)}")
+        res = self.bus.recv(timeout=0.1)
+        if res and res.arbitration_id == rx_id:
+            return res.data
         return None
 
     def read_all_motor_status(self):
@@ -59,32 +55,31 @@ class CANMotorStatusNode(Node):
             try:
                 # === Status 1 ===
                 data1 = self.request_status(tx_id, rx_id, 0x9A)
-                print(rx_id)
                 if data1:
-                    msg_out.temperature = int.from_bytes(data1[1:2], 'little', signed=True)
-                    msg_out.brake_control_command = int.from_bytes(data1[3:4], 'little', signed=False)
-                    msg_out.bus_voltage = int.from_bytes(data1[4:6], 'little', signed=False) / 10.0
-                    msg_out.error_flag = int.from_bytes(data1[6:8], 'little', signed=False)
+                    msg_out.temperature = int.from_bytes([data1[1]], 'big', signed=True)
+                    msg_out.brake_control_command = int.from_bytes([data1[3]], 'big', signed=False)
+                    msg_out.bus_voltage = int.from_bytes(data1[4:6], 'big', signed=False) / 10.0
+                    msg_out.error_flag = int.from_bytes(data1[6:8], 'big', signed=False)
 
                 # === Status 2 ===
                 data2 = self.request_status(tx_id, rx_id, 0x9C)
                 if data2:
-                    msg_out.iq_current = int.from_bytes(data2[2:4], 'little', signed=True) / 100.0
-                    msg_out.speed_shaft = int.from_bytes(data2[4:6], 'little', signed=True) / 1.0
-                    msg_out.degree_shaft = int.from_bytes(data2[6:8], 'little', signed=True) / 1.0
-                    self.latest_vel_ang[motor_id] = (msg_out.speed_shaft) * math.pi / 180  # rad/s
+                    msg_out.iq_current = int.from_bytes(data2[2:4], 'big', signed=True) / 100.0
+                    msg_out.speed_shaft = int.from_bytes(data2[4:6], 'big', signed=True)
+                    msg_out.degree_shaft = int.from_bytes(data2[6:8], 'big', signed=True)
+                    self.latest_vel_ang[motor_id] = (msg_out.speed_shaft / 60.0) * 2 * math.pi  # rad/s
 
                 # === Status 3 ===
                 data3 = self.request_status(tx_id, rx_id, 0x9D)
                 if data3:
-                    msg_out.phase_current_a = int.from_bytes(data3[2:4], 'little', signed=True) / 100.0
-                    msg_out.phase_current_b = int.from_bytes(data3[4:6], 'little', signed=True) / 100.0
-                    msg_out.phase_current_c = int.from_bytes(data3[6:8], 'little', signed=True) / 100.0
+                    msg_out.phase_current_a = int.from_bytes(data3[2:4], 'big', signed=True) / 100.0
+                    msg_out.phase_current_b = int.from_bytes(data3[4:6], 'big', signed=True) / 100.0
+                    msg_out.phase_current_c = int.from_bytes(data3[6:8], 'big', signed=True) / 100.0
 
-                self.motor_publishers[motor_id].publish(msg_out)
-                self.get_logger().info(f"Status message motor {motor_id}: {msg_out}")
-
-            except Exception as e:
+                #self.motor_publishers[motor_id].publish(msg_out)
+		print(data1)
+            
+	except Exception as e:
                 self.get_logger().error(f"Error reading motor {motor_id}: {e}")
 
         # === Compute and publish robot velocity ===
