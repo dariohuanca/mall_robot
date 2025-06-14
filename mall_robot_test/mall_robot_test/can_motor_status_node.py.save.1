@@ -17,7 +17,7 @@ class CANMotorStatusNode(Node):
 
         # Motor IDs
         self.motor_ids = [0x141, 0x142]
-        self.motors_position = {0x141: 'right', 0x142: 'left'}
+        self.motors_position = {0x141: 'left', 0x142: 'right'}
 
         # Publishers
         self.motor_publishers = {
@@ -38,14 +38,11 @@ class CANMotorStatusNode(Node):
     def request_status(self, tx_id, rx_id, cmd_byte):
         msg = can.Message(arbitration_id=tx_id, data=[cmd_byte] + [0x00]*7, is_extended_id=False)
         self.bus.send(msg)
-
-        for _ in range(10):  # try up to 10 times, total wait = 10 * 0.01 = 0.1s
+        for _ in range(10):
             res = self.bus.recv(timeout=0.01)
             if res and res.arbitration_id == rx_id and res.data[0] == cmd_byte:
                 return res.data
-
-        self.get_logger().warn(f"No response for cmd {hex(cmd_byte)} from ID {hex(rx_id)}")
-        return None
+        
 
     def read_all_motor_status(self):
         for motor_id in self.motor_ids:
@@ -59,9 +56,9 @@ class CANMotorStatusNode(Node):
             try:
                 # === Status 1 ===
                 data1 = self.request_status(tx_id, rx_id, 0x9A)
-                print(rx_id)
                 if data1:
                     msg_out.temperature = int.from_bytes(data1[1:2], 'little', signed=True)
+                    print('Temp' + msg_out.temperature)
                     msg_out.brake_control_command = int.from_bytes(data1[3:4], 'little', signed=False)
                     msg_out.bus_voltage = int.from_bytes(data1[4:6], 'little', signed=False) / 10.0
                     msg_out.error_flag = int.from_bytes(data1[6:8], 'little', signed=False)
@@ -89,8 +86,8 @@ class CANMotorStatusNode(Node):
 
         # === Compute and publish robot velocity ===
         if all(mid in self.latest_vel_ang for mid in self.motor_ids):
-            vel_ang_l = self.latest_vel_ang[0x142] * WHEEL_RADIUS
-            vel_ang_r = -self.latest_vel_ang[0x141] * WHEEL_RADIUS
+            vel_ang_l = self.latest_vel_ang[0x141]
+            vel_ang_r = self.latest_vel_ang[0x142]
 
             vx = (vel_ang_r + vel_ang_l) / 2.0
             vy = 0.0
