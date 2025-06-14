@@ -77,7 +77,7 @@ class CANMotorStatusNode(Node):
                     msg_out.phase_current_c = int.from_bytes(data3[6:8], 'big', signed=True) / 100.0
 
                 self.motor_publishers[motor_id].publish(msg_out)
-                self.get_logger.info(f"Status message motor {motor_id}: {msg_out}")
+                self.get_logger().info(f"Status message motor {motor_id}: {msg_out}")
 
             except Exception as e:
                 self.get_logger().error(f"Error reading motor {motor_id}: {e}")
