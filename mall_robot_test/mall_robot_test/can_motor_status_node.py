@@ -55,6 +55,7 @@ class CANMotorStatusNode(Node):
             try:
                 # === Status 1 ===
                 data1 = self.request_status(tx_id, rx_id, 0x9A)
+                print(data1)
                 if data1:
                     msg_out.temperature = int.from_bytes(data1[1:2], 'little', signed=True)
                     print('Temp' + msg_out.temperature)
