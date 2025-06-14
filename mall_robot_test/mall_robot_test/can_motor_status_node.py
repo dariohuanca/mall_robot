@@ -49,7 +49,6 @@ class CANMotorStatusNode(Node):
             rx_id = 0x100 + motor_id
 
             msg_out = RMDMotorStatus()
-            print(msg_out)
             msg_out.header = Header()
             msg_out.header.stamp = self.get_clock().now().to_msg()
 
@@ -78,6 +77,7 @@ class CANMotorStatusNode(Node):
                     msg_out.phase_current_c = int.from_bytes(data3[6:8], 'big', signed=True) / 100.0
 
                 self.motor_publishers[motor_id].publish(msg_out)
+                self.get_logger.info(f"Status message motor {motor_id}: {msg_out}")
 
             except Exception as e:
                 self.get_logger().error(f"Error reading motor {motor_id}: {e}")
