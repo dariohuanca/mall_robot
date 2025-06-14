@@ -21,7 +21,7 @@ class CANMotorStatusNode(Node):
         self.motors_position = {0x141:'left', 0x142:'right'}
 
         # Publishers for each motor
-        self.publishers = {
+        self.motor_publishers = {
             mid: self.create_publisher(RMDMotorStatus, f'/rmd_motor_status_{self.motors_position[mid]}', 10)
             for mid in self.motor_ids
         }
@@ -78,7 +78,7 @@ class CANMotorStatusNode(Node):
                     msg_out.phase_current_b = int.from_bytes(data2[4:6], 'big', signed=True)/100.0
                     msg_out.phase_current_c = int.from_bytes(data2[6:8], 'big', signed=True)/100.0
 
-                self.publishers[motor_id].publish(msg_out)
+                self.motor_publishers[motor_id].publish(msg_out)
 
             except Exception as e:
                 self.get_logger().error(f"Error reading motor {motor_id}: {e}")
