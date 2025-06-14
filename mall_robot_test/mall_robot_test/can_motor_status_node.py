@@ -56,25 +56,26 @@ class CANMotorStatusNode(Node):
                 # === Status 1 ===
                 data1 = self.request_status(tx_id, rx_id, 0x9A)
                 if data1:
-                    msg_out.temperature = int.from_bytes(data1[1:2], 'big', signed=True)
-                    msg_out.brake_control_command = int.from_bytes(data1[3:4], 'big', signed=False)
-                    msg_out.bus_voltage = int.from_bytes(data1[4:6], 'big', signed=False) / 10.0
-                    msg_out.error_flag = int.from_bytes(data1[6:8], 'big', signed=False)
+                    msg_out.temperature = int.from_bytes(data1[1:2], 'little', signed=True)
+                    print('Temp' + msg_out.temperature)
+                    msg_out.brake_control_command = int.from_bytes(data1[3:4], 'little', signed=False)
+                    msg_out.bus_voltage = int.from_bytes(data1[4:6], 'little', signed=False) / 10.0
+                    msg_out.error_flag = int.from_bytes(data1[6:8], 'little', signed=False)
 
                 # === Status 2 ===
                 data2 = self.request_status(tx_id, rx_id, 0x9C)
                 if data2:
-                    msg_out.iq_current = int.from_bytes(data2[2:4], 'big', signed=True) / 100.0
-                    msg_out.speed_shaft = int.from_bytes(data2[4:6], 'big', signed=True) / 1.0
-                    msg_out.degree_shaft = int.from_bytes(data2[6:8], 'big', signed=True) / 1.0
+                    msg_out.iq_current = int.from_bytes(data2[2:4], 'little', signed=True) / 100.0
+                    msg_out.speed_shaft = int.from_bytes(data2[4:6], 'little', signed=True) / 1.0
+                    msg_out.degree_shaft = int.from_bytes(data2[6:8], 'little', signed=True) / 1.0
                     self.latest_vel_ang[motor_id] = (msg_out.speed_shaft) * math.pi / 180  # rad/s
 
                 # === Status 3 ===
                 data3 = self.request_status(tx_id, rx_id, 0x9D)
                 if data3:
-                    msg_out.phase_current_a = int.from_bytes(data3[2:4], 'big', signed=True) / 100.0
-                    msg_out.phase_current_b = int.from_bytes(data3[4:6], 'big', signed=True) / 100.0
-                    msg_out.phase_current_c = int.from_bytes(data3[6:8], 'big', signed=True) / 100.0
+                    msg_out.phase_current_a = int.from_bytes(data3[2:4], 'little', signed=True) / 100.0
+                    msg_out.phase_current_b = int.from_bytes(data3[4:6], 'little', signed=True) / 100.0
+                    msg_out.phase_current_c = int.from_bytes(data3[6:8], 'little', signed=True) / 100.0
 
                 self.motor_publishers[motor_id].publish(msg_out)
                 self.get_logger().info(f"Status message motor {motor_id}: {msg_out}")
