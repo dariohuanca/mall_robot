@@ -8,34 +8,31 @@ import can
 import math
 
 # Constants
-# Wheel radius and separation (adjust according to the robot)
-WHEEL_RADIUS = 0.1  # in meters
-WHEEL_SEPARATION = 0.564  # in meters
+WHEEL_RADIUS = 0.1       # in meters
+WHEEL_SEPARATION = 0.564 # in meters
 
 class CANMotorStatusNode(Node):
     def __init__(self):
         super().__init__('can_motor_status_node')
 
         # Motor IDs
-        self.motor_ids = [0x141, 0x142]  # 0x01 = left, 0x02 = right
-        self.motors_position = {0x141:'left', 0x142:'right'}
+        self.motor_ids = [0x141, 0x142]
+        self.motors_position = {0x141: 'left', 0x142: 'right'}
 
-        # Publishers for each motor
+        # Publishers
         self.motor_publishers = {
             mid: self.create_publisher(RMDMotorStatus, f'/rmd_motor_status_{self.motors_position[mid]}', 10)
             for mid in self.motor_ids
         }
-
-        # Publisher for robot velocity
         self.vel_pub = self.create_publisher(TwistStamped, '/encoder_vel', 10)
-
-        # Track latest speed_rpm per motor
         self.latest_vel_ang = {mid: 0.0 for mid in self.motor_ids}
 
-        # CAN bus setup
-        self.bus = can.interface.Bus(channel='can0', bustype='socketcan')
+        # === CAN interface using slcan ===
+        self.can_interface = '/dev/ttyACM0'  # Adjust to your actual interface
+        self.bitrate = 1000000               # 1 Mbps
+        self.bus = can.interface.Bus(bustype='slcan', channel=self.can_interface, bitrate=self.bitrate)
 
-        # Timer to read at 10 Hz
+        # Timer
         self.timer = self.create_timer(0.01, self.read_all_motor_status)
 
     def request_status(self, tx_id, rx_id, cmd_byte):
@@ -59,24 +56,25 @@ class CANMotorStatusNode(Node):
                 # === Status 1 ===
                 data1 = self.request_status(tx_id, rx_id, 0x9A)
                 if data1:
-                    msg_out.temperature = int.from_bytes(data1[1], 'big', signed=True)
-                    msg_out.brake_control_command = int.from_bytes(data1[3], 'big', signed=False)
-                    msg_out.bus_voltage = int.from_bytes(data1[4:6], 'big', signed=False)/10.0
+                    msg_out.temperature = int.from_bytes([data1[1]], 'big', signed=True)
+                    msg_out.brake_control_command = int.from_bytes([data1[3]], 'big', signed=False)
+                    msg_out.bus_voltage = int.from_bytes(data1[4:6], 'big', signed=False) / 10.0
                     msg_out.error_flag = int.from_bytes(data1[6:8], 'big', signed=False)
 
                 # === Status 2 ===
                 data2 = self.request_status(tx_id, rx_id, 0x9C)
                 if data2:
-                    msg_out.iq_current = int.from_bytes(data2[2:4], 'big', signed=True)/100.0
+                    msg_out.iq_current = int.from_bytes(data2[2:4], 'big', signed=True) / 100.0
                     msg_out.speed_shaft = int.from_bytes(data2[4:6], 'big', signed=True)
                     msg_out.degree_shaft = int.from_bytes(data2[6:8], 'big', signed=True)
+                    self.latest_vel_ang[motor_id] = (msg_out.speed_shaft / 60.0) * 2 * math.pi  # rad/s
 
                 # === Status 3 ===
                 data3 = self.request_status(tx_id, rx_id, 0x9D)
                 if data3:
-                    msg_out.phase_current_a = int.from_bytes(data2[2:4], 'big', signed=True)/100.0
-                    msg_out.phase_current_b = int.from_bytes(data2[4:6], 'big', signed=True)/100.0
-                    msg_out.phase_current_c = int.from_bytes(data2[6:8], 'big', signed=True)/100.0
+                    msg_out.phase_current_a = int.from_bytes(data3[2:4], 'big', signed=True) / 100.0
+                    msg_out.phase_current_b = int.from_bytes(data3[4:6], 'big', signed=True) / 100.0
+                    msg_out.phase_current_c = int.from_bytes(data3[6:8], 'big', signed=True) / 100.0
 
                 self.motor_publishers[motor_id].publish(msg_out)
 
@@ -100,7 +98,6 @@ class CANMotorStatusNode(Node):
             twist_msg.twist.angular.z = vtheta
 
             self.vel_pub.publish(twist_msg)
-
 
 def main(args=None):
     rclpy.init(args=args)
