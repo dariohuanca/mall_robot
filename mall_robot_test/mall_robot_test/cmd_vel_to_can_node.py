@@ -67,19 +67,19 @@ class CmdVelToCAN(Node):
             self.get_logger().error('Error sending CAN message')
 
     def destroy_node(self):
-    try:
-        self.get_logger().info("Shutting down CAN bus...")
-        self.bus.shutdown()
-    except Exception as e:
-        self.get_logger().warn(f"Error closing CAN bus: {e}")
-    finally:
-        super().destroy_node()
+        try:
+            self.get_logger().info("Shutting down CAN bus...")
+            self.bus.shutdown()
+        except Exception as e:
+            self.get_logger().warn(f"Error closing CAN bus: {e}")
+        finally:
+            super().destroy_node()
 
 
 def main(args=None):
     rclpy.init(args=args)
     node = CmdVelToCAN()
-    
+
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
