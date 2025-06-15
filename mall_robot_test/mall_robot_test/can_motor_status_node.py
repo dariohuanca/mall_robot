@@ -30,7 +30,7 @@ class CANMotorStatusNode(Node):
         # === CAN interface using slcan ===
         self.can_interface = '/dev/ttyACM0'  # Adjust to your actual interface
         self.bitrate = 1000000               # 1 Mbps
-        self.bus = can.interface.Bus(bustype='slcan', channel=self.can_interface, bitrate=self.bitrate)
+        self.bus = can.ThreadSafeBus(bustype='slcan', channel=self.can_interface, bitrate=self.bitrate)
 
         # Timer
         self.timer = self.create_timer(0.1, self.read_all_motor_status)

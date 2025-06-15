@@ -18,7 +18,7 @@ class CmdVelToCAN(Node):
         self.bitrate = 1000000  # 1 Mbps
         
         # Initialize the CAN bus
-        self.bus = can.interface.Bus(bustype='slcan', channel=self.can_interface, bitrate=self.bitrate)
+        self.bus = can.ThreadSafeBus(bustype='slcan', channel=self.can_interface, bitrate=self.bitrate)
         
         # Subscribe to the /cmd_vel topic
         self.subscription = self.create_subscription(
