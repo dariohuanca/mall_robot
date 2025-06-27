@@ -94,4 +94,16 @@ class CANMotorStatusNode(Node):
             super().destroy_node()
 
 def main(args=None):
-    rclp
+    rclpy.init(args=args)
+    node = CANMotorStatusNode()
+
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        node.get_logger().info("KeyboardInterrupt received.")
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
