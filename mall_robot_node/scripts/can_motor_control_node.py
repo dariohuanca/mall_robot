@@ -35,10 +35,10 @@ class CANMotorControlNode(Node):
         v_right_dps = (180 / 3.14) * (linear_x + (WHEEL_SEPARATION / 2.0) * angular_z) / WHEEL_RADIUS
         v_left_dps = (180 / 3.14) * (linear_x - (WHEEL_SEPARATION / 2.0) * angular_z) / WHEEL_RADIUS
 
-        # Send speed setpoints to motors (in deg/s, acceleration in deg/s²)
+        # Send speed setpoints to motors (in deg/s)
         try:
-            status_r = self.motor_right.sendSpeedSetpoint(v_right_dps, 500.0)
-            status_l = self.motor_left.sendSpeedSetpoint(-v_left_dps, 500.0)
+            status_r = self.motor_right.sendVelocitySetpoint(v_right_dps)
+            status_l = self.motor_left.sendVelocitySetpoint(-v_left_dps)
 
             self.get_logger().info(
                 f"Cmd sent | Left: {v_left_dps:.2f} dps | Right: {v_right_dps:.2f} dps"
