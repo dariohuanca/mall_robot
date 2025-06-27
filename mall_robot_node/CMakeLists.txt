@@ -30,6 +30,7 @@ ament_python_install_package(${PROJECT_NAME})
 install(PROGRAMS
   scripts/can_motor_control_node.py
   scripts/gamepad_controller_node.py
+  scripts/can_motor_status_node.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
