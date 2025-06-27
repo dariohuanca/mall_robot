@@ -3,7 +3,7 @@
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
-import myactuator_rmd_py as rmd
+import myactuator_rmd.myactuator_rmd_py as rmd
 
 # Constants
 WHEEL_RADIUS = 0.1  # meters
