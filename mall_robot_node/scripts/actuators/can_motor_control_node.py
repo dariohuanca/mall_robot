@@ -2,8 +2,9 @@
 
 import rclpy
 from rclpy.node import Node
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Twist, TwistStamped
 import myactuator_rmd.myactuator_rmd_py as rmd
+import math
 
 # Constants
 WHEEL_RADIUS = 0.1  # meters
@@ -25,6 +26,12 @@ class CANMotorControlNode(Node):
             10
         )
 
+        self.encoder_pub = self.create_publisher(
+            TwistStamped,
+            '/encoder_vel',
+            10
+        )
+
         self.get_logger().info("can_motor_control_node started using myactuator_rmd_py")
 
     def cmd_vel_callback(self, msg):
@@ -32,17 +39,34 @@ class CANMotorControlNode(Node):
         angular_z = msg.angular.z
 
         # Compute angular velocity in deg/s
-        v_right_dps = (180 / 3.14) * (linear_x + (WHEEL_SEPARATION / 2.0) * angular_z) / WHEEL_RADIUS
-        v_left_dps = (180 / 3.14) * (linear_x - (WHEEL_SEPARATION / 2.0) * angular_z) / WHEEL_RADIUS
+        v_right_dps = (180 / math.pi) * (linear_x + (WHEEL_SEPARATION / 2.0) * angular_z) / WHEEL_RADIUS
+        v_left_dps = (180 / math.pi) * (linear_x - (WHEEL_SEPARATION / 2.0) * angular_z) / WHEEL_RADIUS
 
-        # Send speed setpoints to motors (in deg/s)
         try:
+            # Send commands
             vel_enc_r = self.motor_right.sendVelocitySetpoint(v_right_dps)
             vel_enc_l = self.motor_left.sendVelocitySetpoint(-v_left_dps)
 
+            # Convert to rad/s
+            w_r = (vel_enc_r.shaft_speed * math.pi) / 180.0
+            w_l = (-vel_enc_l.shaft_speed * math.pi) / 180.0
+
+            # Compute robot velocities
+            v = (WHEEL_RADIUS / 2.0) * (w_r + w_l)
+            w = (WHEEL_RADIUS / WHEEL_SEPARATION) * (w_r - w_l)
+
+            # Publish TwistStampedimport myactuator_rmd.myactuator_rmd_py as rmd
+            encoder_msg = TwistStamped()
+            encoder_msg.header.stamp = self.get_clock().now().to_msg()
+            encoder_msg.twist.linear.x = v
+            encoder_msg.twist.angular.z = w
+            self.encoder_pub.publish(encoder_msg)
+
             self.get_logger().info(
-                f"Cmd sent | Left: {v_left_dps:.2f} dps | Right: {v_right_dps:.2f} dps"
+                f"Motor cmd -> Right: {v_right_dps:.2f} dps | Left: {-v_left_dps:.2f} dps | "
+                f"Robot vel -> Linear: {v:.2f} m/s | Angular: {w:.2f} rad/s"
             )
+
         except rmd.can.SocketException as e:
             self.get_logger().error(f"CAN error: {e}")
         except Exception as e:
