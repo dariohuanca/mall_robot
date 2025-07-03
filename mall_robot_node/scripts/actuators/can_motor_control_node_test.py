@@ -44,8 +44,8 @@ class CANMotorControlNode(Node):
 
         try:
             # Send commands
-            vel_enc_r = self.motor_right.sendVelocitySetpoint(v_right_dps)
-            vel_enc_l = self.motor_left.sendVelocitySetpoint(-v_left_dps)
+            vel_enc_r = self.motor_right.sendVelocitySetpoint(v_right_dps).shaft_speed
+            vel_enc_l = self.motor_left.sendVelocitySetpoint(-v_left_dps).shaft_speed
 
             # Convert to rad/s
             w_r = (vel_enc_r * math.pi) / 180.0
@@ -55,7 +55,7 @@ class CANMotorControlNode(Node):
             v = (WHEEL_RADIUS / 2.0) * (w_r + w_l)
             w = (WHEEL_RADIUS / WHEEL_SEPARATION) * (w_r - w_l)
 
-            # Publish TwistStamped
+            # Publish TwistStampedimport myactuator_rmd.myactuator_rmd_py as rmd
             encoder_msg = TwistStamped()
             encoder_msg.header.stamp = self.get_clock().now().to_msg()
             encoder_msg.twist.linear.x = v
