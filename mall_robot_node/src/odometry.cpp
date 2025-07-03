@@ -1,4 +1,4 @@
-#include "odometry_node/odometry.hpp"
+#include "mall_robot_node/odometry.hpp"
 
 OdometryPublisher::OdometryPublisher()
 : Node("odometry"), x_(0.0), y_(0.0), th_(0.0), has_last_time_(false)
@@ -14,7 +14,7 @@ OdometryPublisher::OdometryPublisher()
 
 void OdometryPublisher::encoder_callback(const geometry_msgs::msg::TwistStamped::SharedPtr msg)
 {
-  auto current_time = msg->header.stamp;
+  rclcpp::Time current_time(msg->header.stamp);
 
   if (!has_last_time_) {
     last_time_ = current_time;
