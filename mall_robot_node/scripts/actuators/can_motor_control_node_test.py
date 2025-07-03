@@ -48,7 +48,7 @@ class CANMotorControlNode(Node):
             vel_enc_l = self.motor_left.sendVelocitySetpoint(-v_left_dps)
 
             # Convert to rad/s
-            w_r = (vel_enc_r.shaft_speed * math.pi) / 180.0
+            w_r = (-vel_enc_r.shaft_speed * math.pi) / 180.0
             w_l = (vel_enc_l.shaft_speed * math.pi) / 180.0
 
             # Compute robot velocities
