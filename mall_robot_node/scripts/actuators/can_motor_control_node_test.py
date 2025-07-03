@@ -80,7 +80,7 @@ class CANMotorControlNode(Node):
                 msg_out.temperature = status1.temperature
                 msg_out.brake_control_command = status1.is_brake_released
                 msg_out.bus_voltage = status1.voltage
-                msg_out.error_flag = status1.error_code
+                msg_out.error_flag = status1.error_code.name
 
                 msg_out.iq_current = status2.current
                 msg_out.speed_shaft = status2.shaft_speed
