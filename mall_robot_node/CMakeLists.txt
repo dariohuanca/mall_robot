@@ -62,6 +62,7 @@ install(PROGRAMS
   scripts/sensors/imu_node.py
   scripts/sensors/ultrasonic_sensors_node.py
   scripts/actuators/can_motor_control_node.py
+  scripts/actuators/can_motor_control_node_test.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
