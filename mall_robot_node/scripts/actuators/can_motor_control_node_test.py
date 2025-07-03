@@ -52,11 +52,11 @@ class CANMotorControlNode(Node):
         v_left_dps = (180 / math.pi) * (linear_x - (WHEEL_SEPARATION / 2.0) * angular_z) / WHEEL_RADIUS
 
         try:
-            vel_enc_r = self.motor_right.sendVelocitySetpoint(v_right_dps)
-            vel_enc_l = self.motor_left.sendVelocitySetpoint(-v_left_dps)
+            vel_enc_r = self.motor_right.sendVelocitySetpoint(-v_right_dps)
+            vel_enc_l = self.motor_left.sendVelocitySetpoint(v_left_dps)
 
             self.get_logger().info(
-                f"Cmd -> R: {v_right_dps:.2f} dps, L: {-v_left_dps:.2f} dps"
+                f"Cmd -> R: {-v_right_dps:.2f} dps, L: {v_left_dps:.2f} dps"
             )
 
         except rmd.can.SocketException as e:
