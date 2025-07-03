@@ -18,8 +18,8 @@ class CANMotorControlNode(Node):
 
         # Initialize CAN driver and actuators
         self.driver = rmd.CanDriver("can0")
-        self.motor_left = rmd.ActuatorInterface(self.driver, 1)   # CAN ID 0x141
-        self.motor_right = rmd.ActuatorInterface(self.driver, 2)  # CAN ID 0x142
+        self.motor_right = rmd.ActuatorInterface(self.driver, 1)   # CAN ID 0x141
+        self.motor_left = rmd.ActuatorInterface(self.driver, 2)  # CAN ID 0x142
 
         # Publishers and Subscriber
         self.subscription = self.create_subscription(
@@ -98,8 +98,8 @@ class CANMotorControlNode(Node):
 
         # Publish computed robot velocity
         if all(mid in self.latest_vel_ang for mid in motors):
-            vel_ang_l = -self.latest_vel_ang[0x141] * WHEEL_RADIUS
-            vel_ang_r = self.latest_vel_ang[0x142] * WHEEL_RADIUS
+            vel_ang_r = -self.latest_vel_ang[0x141] * WHEEL_RADIUS
+            vel_ang_l = self.latest_vel_ang[0x142] * WHEEL_RADIUS
 
             vx = (vel_ang_r + vel_ang_l) / 2.0
             vtheta = (vel_ang_r - vel_ang_l) / WHEEL_SEPARATION
