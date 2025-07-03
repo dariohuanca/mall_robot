@@ -3,7 +3,7 @@ std_msgs/Header header
 int8 temperature
 int8 brake_control_command
 float32 bus_voltage
-uint8 error_flag
+string error_flag
 
 # int8 temperature_2
 float32 iq_current
