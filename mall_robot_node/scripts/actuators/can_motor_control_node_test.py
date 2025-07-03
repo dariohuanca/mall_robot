@@ -9,8 +9,8 @@ import myactuator_rmd.myactuator_rmd_py as rmd
 import math
 
 # Constants
-WHEEL_RADIUS = 0.1       # in meters
-WHEEL_SEPARATION = 0.564 # in meters
+WHEEL_RADIUS = 0.127     # in meters
+WHEEL_SEPARATION = 0.59  # in meters
 
 class CANMotorControlNode(Node):
     def __init__(self):
