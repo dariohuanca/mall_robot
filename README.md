@@ -69,18 +69,33 @@ source install/setup.bash
 
 sllidar_ros2 requires read/write access to the serial device (e.g. `/dev/ttyUSB0`).
 
-### One‑off (non‑persistent)
+### Create udev rule
+
+You have to have the command colcon_cd in your system, if not, run the next commands
 
 ```bash
-sudo chmod 666 /dev/ttyUSB0
+echo "source /usr/share/colcon_cd/function/colcon_cd.sh" >> ~/.bashrc
+echo "export _colcon_cd_root=/opt/ros/humble/" >> ~/.bashrc
 ```
 
-### Persistent udev rule
+Verify if the file create_udev_rules.sh in sllidar_ros2/scripts has correctly name the package.
+If it has something like this line 
 
 ```bash
-cd ~/ros2_ws/src/sllidar_ros2/scripts
-sudo ./create_udev_rules.sh
-sudo udevadm control --reload-rules && sudo udevadm trigger
+colcon_cd rplidar_ros2
+```
+
+Correct it changing it to 
+
+```bash
+colcon_cd sllidar_ros2
+```
+
+Then run the script to create the udev rule
+
+```bash
+cd ~/ros2_ws/src/sllidar_ros2
+source scripts/create_udev_rules.sh
 ```
 
 Reconnect the LIDAR USB cable to apply the new rule.
